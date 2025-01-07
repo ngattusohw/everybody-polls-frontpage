@@ -13,6 +13,9 @@ export default function Footer() {
             <Link to="/privacy" className="text-sm hover:text-blue-400 transition-colors">
               Privacy Policy
             </Link>
+            <Link to="/delete" className="text-sm hover:text-red-400 transition-colors">
+              Delete Account
+            </Link>
           </div>
         </div>
       </div>
