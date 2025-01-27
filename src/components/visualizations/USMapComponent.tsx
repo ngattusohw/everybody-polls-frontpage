@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import { ComposableMap, Geographies, Geography, Marker } from 'react-simple-maps';
 import { scaleLinear } from 'd3-scale';
 
@@ -72,7 +72,17 @@ interface USMapProps {
   }[];
 }
 
+interface TooltipData {
+  name: string;
+  totalVotes: number;
+  yesVotes: number;
+  noVotes: number;
+  x: number;
+  y: number;
+}
+
 const USMapComponent = ({ stateResults, results }: USMapProps) => {
+  const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   console.log('stateResults:', stateResults); // Debug log
   console.log('results:', results); // Debug log
 
@@ -106,7 +116,7 @@ const USMapComponent = ({ stateResults, results }: USMapProps) => {
   };
 
   return (
-    <div className="h-[400px] w-full">
+    <div className="h-[400px] w-full relative">
       <ComposableMap projection="geoAlbersUsa">
         <Geographies geography={geoUrl}>
           {({ geographies }) => {
@@ -114,6 +124,8 @@ const USMapComponent = ({ stateResults, results }: USMapProps) => {
               const stateName = geo.properties.name;
               const statePostal = stateNameToPostalCode[stateName];
               const stateData = stateResults.find((s) => s.state === statePostal);
+              const yesVotes = stateData?.[yesOptionId]?.votes || 0;
+              const totalVotes = stateData?.totalVotes || 0;
 
               return (
                 <Geography
@@ -125,19 +137,61 @@ const USMapComponent = ({ stateResults, results }: USMapProps) => {
                   style={{
                     default: {
                       outline: 'none',
+                      cursor: 'pointer',
                     },
                     hover: {
                       fill: '#666',
                       outline: 'none',
                     },
                   }}
-                  title={`${stateName}: ${stateData ? stateData.totalVotes : 0} votes`}
+                  onMouseEnter={(evt) => {
+                    const { clientX, clientY } = evt;
+                    console.log('Test');
+                    setTooltip({
+                      name: stateName,
+                      totalVotes,
+                      yesVotes,
+                      noVotes: totalVotes - yesVotes,
+                      x: clientX,
+                      y: clientY,
+                    });
+                  }}
+                  onMouseLeave={() => {
+                    setTooltip(null);
+                  }}
                 />
               );
             });
           }}
         </Geographies>
       </ComposableMap>
+
+      {tooltip && (
+        <div
+          className="absolute z-10 bg-white px-4 py-2 rounded-lg shadow-lg border border-gray-200 text-sm"
+          style={{
+            left: tooltip.x + 10,
+            top: tooltip.y - 40,
+            transform: 'translateX(-50%)',
+            pointerEvents: 'none',
+            zIndex: 1000,
+          }}
+        >
+          <div className="font-semibold">{tooltip.name}</div>
+          <div className="text-gray-600">
+            Total Votes: {tooltip.totalVotes}
+            {tooltip.totalVotes > 0 && (
+              <>
+                <br />
+                Yes: {tooltip.yesVotes} (
+                {((tooltip.yesVotes / tooltip.totalVotes) * 100).toFixed(1)}%)
+                <br />
+                No: {tooltip.noVotes} ({((tooltip.noVotes / tooltip.totalVotes) * 100).toFixed(1)}%)
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
