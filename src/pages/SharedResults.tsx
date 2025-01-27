@@ -57,14 +57,20 @@ export default function SharedResults() {
   }, [data]);
 
   // Generate the OG image URL using the chart image
-  const ogImageUrl =
-    data && chartImageUrl
-      ? `https://og-image.vercel.app/**${encodeURIComponent(data.question.text)}**` +
-        `%0A%0A![Poll Results](${encodeURIComponent(chartImageUrl)})` +
-        `%0A%0ATotal Votes: ${data.totalVotes}` +
-        `%0A%0A**Everybody Polls**` +
-        `.png?theme=light&md=1&fontSize=75px`
-      : '';
+  // const ogImageUrl =
+  //   data && chartImageUrl
+  //     ? `https://og-image.vercel.app/**${encodeURIComponent(data.question.text)}**` +
+  //       `%0A%0A![Poll Results](${encodeURIComponent(chartImageUrl)})` +
+  //       `%0A%0ATotal Votes: ${data.totalVotes}` +
+  //       `%0A%0A**Everybody Polls**` +
+  //       `.png?theme=light&md=1&fontSize=75px`
+  //     : '';
+
+  // ... existing code ...
+  const ogImageUrl = `https://og-image.vercel.app/${encodeURIComponent(
+    data?.question.text
+  )}?theme=light&md=1&fontSize=75px`;
+  // ... existing code ...
 
   useEffect(() => {
     console.log('OG Image URL:', ogImageUrl); // Debug log
@@ -177,14 +183,14 @@ export default function SharedResults() {
       </Helmet>
 
       {/* Hidden chart for image generation */}
-      <div className="hidden">
+      {/* <div className="hidden">
         <div
           ref={chartRef}
           style={{ width: '400px', height: '400px', background: 'white', padding: '20px' }}
         >
           <PieChartComponent results={data?.results || []} />
         </div>
-      </div>
+      </div> */}
 
       {/* Debug element */}
       {process.env.NODE_ENV === 'development' && (
@@ -214,7 +220,7 @@ export default function SharedResults() {
 
             {/* Results visualization components will go here */}
             <div className="grid md:grid-cols-2 gap-8 mt-8">
-              <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="bg-gray-50 p-4 rounded-lg" ref={chartRef}>
                 <h3 className="text-xl font-semibold mb-4">Overall Results</h3>
                 <PieChartComponent results={results} />
               </div>
