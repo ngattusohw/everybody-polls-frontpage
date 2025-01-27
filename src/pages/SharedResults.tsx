@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { PieChart, BarChart3, Loader2 } from 'lucide-react';
+import { PieChartComponent } from '@/components/visualizations/PieChartComponent';
+import USMapComponent from '@/components/visualizations/USMapComponent';
 
 interface ResultsData {
   question: {
@@ -114,8 +116,17 @@ export default function SharedResults() {
 
             {/* Results visualization components will go here */}
             <div className="grid md:grid-cols-2 gap-8 mt-8">
-              <div className="bg-gray-50 p-4 rounded-lg">{/* Pie Chart Component */}</div>
-              <div className="bg-gray-50 p-4 rounded-lg">{/* US Map Component */}</div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-xl font-semibold mb-4">Overall Results</h3>
+                <PieChartComponent results={results} />
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-xl font-semibold mb-4">Results by State</h3>
+                <USMapComponent
+                  stateResults={data.stateResults}
+                  optionIds={results.map((r) => r.optionId)}
+                />
+              </div>
             </div>
           </div>
         </div>
