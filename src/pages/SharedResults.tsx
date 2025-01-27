@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import { PieChart, BarChart3, Loader2 } from 'lucide-react';
 import { PieChartComponent } from '@/components/visualizations/PieChartComponent';
 import USMapComponent from '@/components/visualizations/USMapComponent';
+import * as htmlToImage from 'html-to-image'; // Changed to regular import
 
 interface ResultsData {
   question: {
@@ -30,18 +31,44 @@ export default function SharedResults() {
   const [data, setData] = useState<ResultsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [chartImageUrl, setChartImageUrl] = useState<string>('');
+  const chartRef = useRef<HTMLDivElement>(null);
 
-  // Generate the OG image URL
-  const ogImageUrl = data
-    ? `${window.location.origin}/api/og?` +
-      new URLSearchParams({
-        question: data.question.text,
-        totalVotes: data.totalVotes.toString(),
-        yesPercentage:
-          data.results.find((r) => r.optionText === 'Yes')?.percentage.toString() || '0',
-        noPercentage: data.results.find((r) => r.optionText === 'No')?.percentage.toString() || '0',
-      })
-    : '';
+  // Function to convert chart to base64 image
+  const generateChartImage = async () => {
+    if (!chartRef.current || !data) return;
+
+    try {
+      // Use html-to-image library to convert the chart to base64
+      const dataUrl = await htmlToImage.toPng(chartRef.current, {
+        quality: 1.0,
+        backgroundColor: 'white',
+      });
+      setChartImageUrl(dataUrl);
+    } catch (error) {
+      console.error('Error generating chart image:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (data) {
+      generateChartImage();
+    }
+  }, [data]);
+
+  // Generate the OG image URL using the chart image
+  const ogImageUrl =
+    data && chartImageUrl
+      ? `https://og-image.vercel.app/**${encodeURIComponent(data.question.text)}**` +
+        `%0A%0A![Poll Results](${encodeURIComponent(chartImageUrl)})` +
+        `%0A%0ATotal Votes: ${data.totalVotes}` +
+        `%0A%0A**Everybody Polls**` +
+        `.png?theme=light&md=1&fontSize=75px`
+      : '';
+
+  useEffect(() => {
+    console.log('OG Image URL:', ogImageUrl); // Debug log
+  }, [ogImageUrl]);
 
   useEffect(() => {
     const fetchResults = async () => {
@@ -148,6 +175,30 @@ export default function SharedResults() {
         />
         <meta name="twitter:image" content={ogImageUrl} />
       </Helmet>
+
+      {/* Hidden chart for image generation */}
+      <div className="hidden">
+        <div
+          ref={chartRef}
+          style={{ width: '400px', height: '400px', background: 'white', padding: '20px' }}
+        >
+          <PieChartComponent results={data?.results || []} />
+        </div>
+      </div>
+
+      {/* Debug element */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed bottom-4 right-4 p-4 bg-white rounded-lg shadow-lg z-50">
+          <p className="text-sm font-semibold mb-2">Debug: OG Image Preview</p>
+          <img src={ogImageUrl} alt="OG Preview" className="max-w-[300px]" />
+          {chartImageUrl && (
+            <div className="mt-2">
+              <p className="text-sm font-semibold mb-2">Chart Image:</p>
+              <img src={chartImageUrl} alt="Chart" className="max-w-[200px]" />
+            </div>
+          )}
+        </div>
+      )}
 
       <main className="min-h-screen bg-gray-50 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
