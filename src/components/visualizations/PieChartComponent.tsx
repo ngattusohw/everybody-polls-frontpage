@@ -10,7 +10,7 @@ interface PieChartProps {
   }[];
 }
 
-const COLORS = ['#2563eb', '#dc2626']; // Blue and red for binary choices
+const COLORS = ['#dc2626', '#2563eb']; // Blue and red for binary choices
 
 export function PieChartComponent({ results }: PieChartProps) {
   const data = results.map((result) => ({

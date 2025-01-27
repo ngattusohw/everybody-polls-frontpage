@@ -124,7 +124,7 @@ export default function SharedResults() {
                 <h3 className="text-xl font-semibold mb-4">Results by State</h3>
                 <USMapComponent
                   stateResults={data.stateResults}
-                  optionIds={results.map((r) => r.optionId)}
+                  results={results} // Pass the full results array instead of just IDs
                 />
               </div>
             </div>
