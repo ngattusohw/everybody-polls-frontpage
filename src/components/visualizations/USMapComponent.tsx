@@ -1,4 +1,4 @@
-import React, { memo, useState } from 'react';
+import React, { memo, useState, useCallback } from 'react';
 import { ComposableMap, Geographies, Geography, Marker } from 'react-simple-maps';
 import { scaleLinear } from 'd3-scale';
 
@@ -83,44 +83,39 @@ interface TooltipData {
 
 const USMapComponent = ({ stateResults, results }: USMapProps) => {
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
-  console.log('stateResults:', stateResults); // Debug log
-  console.log('results:', results); // Debug log
-
   const yesOptionId = results.find((r) => r.optionText === 'Yes')?.optionId;
 
-  const getStateColor = (geo: any) => {
-    const stateName = geo.properties.name;
-    const statePostal = stateNameToPostalCode[stateName];
+  const getStateColor = useCallback(
+    (geo: any) => {
+      const stateName = geo.properties.name;
+      const statePostal = stateNameToPostalCode[stateName];
 
-    const stateData = stateResults.find((s) => s.state === statePostal);
+      const stateData = stateResults.find((s) => s.state === statePostal);
 
-    if (!stateData || !yesOptionId) return '#D3D3D3'; // Light gray for states with no data
+      if (!stateData || !yesOptionId) return '#D3D3D3';
 
-    const yesVotes = stateData[yesOptionId]?.votes || 0;
-    const total = stateData.totalVotes;
+      const yesVotes = stateData[yesOptionId]?.votes || 0;
+      const total = stateData.totalVotes;
 
-    if (total === 0) return '#D3D3D3';
+      if (total === 0) return '#D3D3D3';
 
-    // Calculate percentage of "Yes" votes
-    const percentage = (yesVotes / total) * 100;
-    console.log(
-      `${statePostal} - Yes votes: ${yesVotes}, Total: ${total}, Percentage: ${percentage}%`
-    );
+      const percentage = (yesVotes / total) * 100;
 
-    // Flip the color scale: red for low "Yes" percentage (high "No"), blue for high "Yes" percentage
-    const colorScale = scaleLinear<string>()
-      .domain([0, 50, 100])
-      .range(['#2563eb', '#D3D3D3', '#dc2626']); // Flipped blue and red
+      const colorScale = scaleLinear<string>()
+        .domain([0, 50, 100])
+        .range(['#2563eb', '#D3D3D3', '#dc2626']);
 
-    return colorScale(percentage);
-  };
+      return colorScale(percentage);
+    },
+    [stateResults, yesOptionId]
+  );
 
   return (
-    <div className="h-[400px] w-full relative">
+    <div className="h-[400px] w-full relative" style={{ touchAction: 'none' }}>
       <ComposableMap projection="geoAlbersUsa">
         <Geographies geography={geoUrl}>
-          {({ geographies }) => {
-            return geographies.map((geo) => {
+          {({ geographies }) =>
+            geographies.map((geo) => {
               const stateName = geo.properties.name;
               const statePostal = stateNameToPostalCode[stateName];
               const stateData = stateResults.find((s) => s.state === statePostal);
@@ -145,15 +140,14 @@ const USMapComponent = ({ stateResults, results }: USMapProps) => {
                     },
                   }}
                   onMouseEnter={(evt) => {
-                    const { clientX, clientY } = evt;
-                    console.log('Test');
+                    const { pageX, pageY } = evt;
                     setTooltip({
                       name: stateName,
                       totalVotes,
                       yesVotes,
                       noVotes: totalVotes - yesVotes,
-                      x: clientX,
-                      y: clientY,
+                      x: pageX,
+                      y: pageY,
                     });
                   }}
                   onMouseLeave={() => {
@@ -161,20 +155,20 @@ const USMapComponent = ({ stateResults, results }: USMapProps) => {
                   }}
                 />
               );
-            });
-          }}
+            })
+          }
         </Geographies>
       </ComposableMap>
 
       {tooltip && (
         <div
-          className="absolute z-10 bg-white px-4 py-2 rounded-lg shadow-lg border border-gray-200 text-sm"
+          className="fixed bg-white px-4 py-2 rounded-lg shadow-lg border border-gray-200 text-sm"
           style={{
-            left: tooltip.x + 10,
-            top: tooltip.y - 40,
-            transform: 'translateX(-50%)',
+            left: `${tooltip.x}px`,
+            top: `${tooltip.y}px`,
+            transform: 'translate(-50%, -100%)',
             pointerEvents: 'none',
-            zIndex: 1000,
+            zIndex: 9999,
           }}
         >
           <div className="font-semibold">{tooltip.name}</div>
