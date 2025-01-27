@@ -31,6 +31,18 @@ export default function SharedResults() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Generate the OG image URL
+  const ogImageUrl = data
+    ? `${window.location.origin}/api/og?` +
+      new URLSearchParams({
+        question: data.question.text,
+        totalVotes: data.totalVotes.toString(),
+        yesPercentage:
+          data.results.find((r) => r.optionText === 'Yes')?.percentage.toString() || '0',
+        noPercentage: data.results.find((r) => r.optionText === 'No')?.percentage.toString() || '0',
+      })
+    : '';
+
   useEffect(() => {
     const fetchResults = async () => {
       try {
@@ -90,16 +102,51 @@ export default function SharedResults() {
   return (
     <>
       <Helmet>
-        <title>{`Poll Results: ${question.text} | Everybody Polls`}</title>
-        <meta name="description" content={`See how people voted on: ${question.text}`} />
-        <meta property="og:title" content={`Poll Results: ${question.text}`} />
+        <title>
+          {data ? `Poll Results: ${data.question.text} | Everybody Polls` : 'Loading...'}
+        </title>
+        <meta
+          name="description"
+          content={
+            data
+              ? `See how people voted on: ${data.question.text}. Total votes: ${data.totalVotes}`
+              : ''
+          }
+        />
+
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={window.location.href} />
+        <meta
+          property="og:title"
+          content={data ? `Poll Results: ${data.question.text}` : 'Poll Results'}
+        />
         <meta
           property="og:description"
-          content={`See how Americans voted on this important question. Total votes: ${totalVotes}`}
+          content={
+            data
+              ? `See how Americans voted on this important question. Total votes: ${data.totalVotes}`
+              : ''
+          }
         />
-        <meta property="og:type" content="website" />
-        <meta property="og:image" content="/og-image.png" />
+        <meta property="og:image" content={ogImageUrl} />
+
+        {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content={window.location.href} />
+        <meta
+          name="twitter:title"
+          content={data ? `Poll Results: ${data.question.text}` : 'Poll Results'}
+        />
+        <meta
+          name="twitter:description"
+          content={
+            data
+              ? `See how Americans voted on this important question. Total votes: ${data.totalVotes}`
+              : ''
+          }
+        />
+        <meta name="twitter:image" content={ogImageUrl} />
       </Helmet>
 
       <main className="min-h-screen bg-gray-50 py-12">
