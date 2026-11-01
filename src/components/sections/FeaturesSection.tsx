@@ -1,46 +1,12 @@
-import React from 'react';
-import { Vote, BarChart3, Target, UserCircle2 } from 'lucide-react';
-import { FeatureCard } from '@/components/features/FeatureCard';
+import { ArrowRight, Check, MousePointer2, Target, Users } from 'lucide-react';
 
 export function FeaturesSection() {
-  const features = [
-    {
-      icon: Vote,
-      title: "Make Your Voice Heard",
-      description: "Vote on important topics and see how your views align with others"
-    },
-    {
-      icon: BarChart3,
-      title: "Explore Detailed Insights",
-      description: "Filter results by age, location, occupation & more"
-    },
-    {
-      icon: Target,
-      title: "Test Your Prediction Skills",
-      description: "Predict majority opinions and track your accuracy"
-    },
-    {
-      icon: UserCircle2,
-      title: "Privacy First",
-      description: "Your data is only used for anonymous, aggregated insights"
-    }
-  ];
-
-  return (
-    <section className="py-24 bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold mb-4">Why Join Everybody Polls?</h2>
-          <p className="text-xl text-gray-600">
-            Quick sign-up process, meaningful insights, and a voice in the conversation
-          </p>
-        </div>
-        <div className="grid md:grid-cols-2 gap-8">
-          {features.map((feature, index) => (
-            <FeatureCard key={index} {...feature} />
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+  return <section className="how-section section-shell" id="how-it-works">
+    <div className="section-heading"><div><p className="eyebrow">THE GOOD KIND OF TAKING SIDES</p><h2>A small ritual.<br />A fun little reveal.</h2></div><p>A poll takes a moment.<br />The second guess is what makes it interesting.</p></div>
+    <div className="how-steps">
+      <article className="how-step"><div className="step-visual vote-visual" aria-hidden="true"><span className="mini-choice"><Check size={24} /></span><span className="mini-choice" /><MousePointer2 className="demo-pointer" size={37} fill="white" /></div><p className="step-number">01 / YOUR OPINION</p><h3>Pick your side.</h3><p>Go with your gut. Choose the answer that feels most like you.</p><ArrowRight className="step-arrow" size={22} aria-hidden="true" /></article>
+      <article className="how-step"><div className="step-visual predict-visual" aria-hidden="true"><Users size={46} strokeWidth={1.5} /><span className="thought-bubble"><Target size={22} /></span></div><p className="step-number">02 / YOUR PREDICTION</p><h3>Read the room.</h3><p>Make a separate guess. Which answer do you think everyone else will pick?</p><ArrowRight className="step-arrow" size={22} aria-hidden="true" /></article>
+      <article className="how-step"><div className="step-visual reveal-visual" aria-hidden="true"><span /><span /><span /><span /><i className="reveal-line" /></div><p className="step-number">03 / THE BIG REVEAL</p><h3>See where we land.</h3><p>When a poll closes, explore the results. Did you see the majority coming?</p></article>
+    </div>
+  </section>;
 }

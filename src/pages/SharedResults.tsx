@@ -1,239 +1,211 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { useSearchParams, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
-import { PieChart, BarChart3, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Loader2, RefreshCw } from 'lucide-react';
 import { PieChartComponent } from '@/components/visualizations/PieChartComponent';
 import USMapComponent from '@/components/visualizations/USMapComponent';
-import * as htmlToImage from 'html-to-image'; // Changed to regular import
+import { isQuestionId, parseResultsData, PUBLIC_API_KEY, resultsUrl } from '@/lib/backend';
+import type { ResultsData } from '@/lib/backend';
 
-interface ResultsData {
-  question: {
-    id: string;
-    text: string;
-  };
-  results: {
-    optionId: string;
-    optionText: string;
-    votes: number;
-    percentage: number;
-  }[];
-  totalVotes: number;
-  stateResults: {
-    state: string;
-    totalVotes: number;
-    [key: string]: any;
-  }[];
-}
+type LoadState =
+  | { status: 'loading'; requestKey: string }
+  | { status: 'ready'; requestKey: string; data: ResultsData }
+  | { status: 'error'; requestKey: string; title: string; message: string; retryable: boolean };
+
+const filterLabels: Record<string, string> = {
+  age: 'Age', gender: 'Gender', state: 'State', race_ethnicity: 'Race / ethnicity',
+  income_bracket: 'Income', occupation: 'Occupation', political_party: 'Political party',
+  political_leaning: 'Political leaning', employment_status: 'Employment', employment: 'Employment',
+  citizenship_status: 'Citizenship', citizenship: 'Citizenship',
+};
 
 export default function SharedResults() {
   const [searchParams] = useSearchParams();
   const { questionId } = useParams();
-  const [data, setData] = useState<ResultsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [chartImageUrl, setChartImageUrl] = useState<string>('');
-  const chartRef = useRef<HTMLDivElement>(null);
+  const query = searchParams.toString();
+  const requestKey = `${questionId ?? ''}?${query}`;
+  const [attempt, setAttempt] = useState(0);
+  const [state, setState] = useState<LoadState>({ status: 'loading', requestKey });
+  // Avoid showing the previous poll while a route or filter change starts a request.
+  const current: LoadState = state.requestKey === requestKey ? state : { status: 'loading', requestKey };
+  const filters = [...searchParams.entries()].filter(([key]) => key !== 'userId');
 
-  // Function to convert chart to base64 image
-  const generateChartImage = async () => {
-    if (!chartRef.current || !data) return;
-
-    try {
-      // Use html-to-image library to convert the chart to base64
-      const dataUrl = await htmlToImage.toPng(chartRef.current, {
-        quality: 1.0,
-        backgroundColor: 'white',
-      });
-      setChartImageUrl(dataUrl);
-    } catch (error) {
-      console.error('Error generating chart image:', error);
+  useEffect(() => {
+    if (!isQuestionId(questionId)) {
+      setState({ status: 'error', requestKey, title: 'This poll link is incomplete',
+        message: 'Open the full shared link to view its results.', retryable: false });
+      return;
     }
-  };
 
-  useEffect(() => {
-    if (data) {
-      generateChartImage();
-    }
-  }, [data]);
+    const pollId = questionId;
+    const controller = new AbortController();
+    let timedOut = false;
+    let active = true;
+    const timeout = window.setTimeout(() => { timedOut = true; controller.abort(); }, 30000);
+    setState({ status: 'loading', requestKey });
 
-  // Generate the OG image URL using the chart image
-  // const ogImageUrl =
-  //   data && chartImageUrl
-  //     ? `https://og-image.vercel.app/**${encodeURIComponent(data.question.text)}**` +
-  //       `%0A%0A![Poll Results](${encodeURIComponent(chartImageUrl)})` +
-  //       `%0A%0ATotal Votes: ${data.totalVotes}` +
-  //       `%0A%0A**Everybody Polls**` +
-  //       `.png?theme=light&md=1&fontSize=75px`
-  //     : '';
-
-  // ... existing code ...
-  const ogImageUrl = `https://og-image.vercel.app/${encodeURIComponent(
-    data?.question.text
-  )}?theme=light&md=1&fontSize=75px`;
-  // ... existing code ...
-
-  useEffect(() => {
-    console.log('OG Image URL:', ogImageUrl); // Debug log
-  }, [ogImageUrl]);
-
-  useEffect(() => {
-    const fetchResults = async () => {
+    async function loadResults() {
       try {
-        if (!questionId) throw new Error('Question ID is required');
-
-        console.log(`Questionid ${questionId}`);
-        const url = new URL(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/result-data/${questionId}`
-        );
-
-        // Add all demographic filters from URL params
-        searchParams.forEach((value, key) => {
-          url.searchParams.append(key, value);
+        const response = await fetch(resultsUrl(pollId, query), {
+          headers: { Authorization: `Bearer ${PUBLIC_API_KEY}` },
+          signal: controller.signal,
         });
+        if (!active) return;
+        if (timedOut) throw new Error('Request timed out');
+        if (!response.ok) {
+          if (response.status === 404) {
+            setState({ status: 'error', requestKey, title: 'Poll not found',
+              message: 'This poll is unavailable. Check the shared link or return to the homepage.', retryable: false });
+          } else if (response.status === 400) {
+            setState({ status: 'error', requestKey, title: 'These results could not be requested',
+              message: 'This link contains an invalid poll identifier or filter. Try opening the poll without filters.', retryable: false });
+          } else {
+            setState({ status: 'error', requestKey, title: 'Results are temporarily unavailable',
+              message: 'We could not load this poll right now. Please try again.', retryable: true });
+          }
+          return;
+        }
 
-        const response = await fetch(url.toString(), {
-          headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-        });
-
-        if (!response.ok) throw new Error('Failed to fetch results');
-
-        const resultData = await response.json();
-        setData(resultData);
-      } catch (err) {
-        setError(err.message);
+        let data: ResultsData;
+        try {
+          data = parseResultsData(await response.json(), pollId);
+        } catch (error) {
+          if (controller.signal.aborted) throw error;
+          if (!active) return;
+          setState({ status: 'error', requestKey, title: 'Results are not ready to display',
+            message: 'The poll returned incomplete results. Please try again in a moment.', retryable: true });
+          return;
+        }
+        if (active && !controller.signal.aborted) setState({ status: 'ready', requestKey, data });
+      } catch {
+        if (!active) return;
+        if (controller.signal.aborted && !timedOut) return;
+        setState({ status: 'error', requestKey, title: timedOut ? 'Results took too long to load' : 'We could not connect',
+          message: timedOut ? 'Please try loading this poll again.' : 'Check your connection and try again.', retryable: true });
       } finally {
-        setLoading(false);
+        window.clearTimeout(timeout);
       }
-    };
+    }
 
-    fetchResults();
-  }, [searchParams]);
+    void loadResults();
+    return () => { active = false; window.clearTimeout(timeout); controller.abort(); };
+  }, [questionId, query, requestKey, attempt]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
-
-  if (error || !data) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-2">Error Loading Results</h2>
-          <p className="text-gray-600">{error || 'Failed to load poll results'}</p>
-        </div>
-      </div>
-    );
-  }
-
-  const { question, results, totalVotes } = data;
+  const data = current.status === 'ready' ? current.data : null;
+  const title = data ? `${data.question.text} — Results | Everybody Polls` : 'Poll results | Everybody Polls';
+  const description = data
+    ? `Results for “${data.question.text}”. ${data.totalVotes.toLocaleString()} votes${filters.length ? ' with the selected filters' : ''}.`
+    : 'View shared poll results from Everybody Polls.';
+  const socialImage = new URL('/social-preview.png', window.location.origin).href;
 
   return (
     <>
       <Helmet>
-        <title>
-          {data ? `Poll Results: ${data.question.text} | Everybody Polls` : 'Loading...'}
-        </title>
-        <meta
-          name="description"
-          content={
-            data
-              ? `See how people voted on: ${data.question.text}. Total votes: ${data.totalVotes}`
-              : ''
-          }
-        />
-
-        {/* Open Graph / Facebook */}
+        <title>{title}</title>
+        <meta name="description" content={description} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={window.location.href} />
-        <meta
-          property="og:title"
-          content={data ? `Poll Results: ${data.question.text}` : 'Poll Results'}
-        />
-        <meta
-          property="og:description"
-          content={
-            data
-              ? `See how Americans voted on this important question. Total votes: ${data.totalVotes}`
-              : ''
-          }
-        />
-        <meta property="og:image" content={ogImageUrl} />
-
-        {/* Twitter */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:url" content={window.location.href} />
-        <meta
-          name="twitter:title"
-          content={data ? `Poll Results: ${data.question.text}` : 'Poll Results'}
-        />
-        <meta
-          name="twitter:description"
-          content={
-            data
-              ? `See how Americans voted on this important question. Total votes: ${data.totalVotes}`
-              : ''
-          }
-        />
-        <meta name="twitter:image" content={ogImageUrl} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:image" content={socialImage} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+        <meta name="twitter:image" content={socialImage} />
       </Helmet>
 
-      {/* Hidden chart for image generation */}
-      {/* <div className="hidden">
-        <div
-          ref={chartRef}
-          style={{ width: '400px', height: '400px', background: 'white', padding: '20px' }}
-        >
-          <PieChartComponent results={data?.results || []} />
-        </div>
-      </div> */}
+      <main className="section-shell shared-results-page py-12 sm:py-20" style={{ minHeight: '65vh' }}>
+        <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold mb-10">
+          <ArrowLeft size={16} aria-hidden="true" /> Everybody Polls
+        </Link>
 
-      {/* Debug element */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed bottom-4 right-4 p-4 bg-white rounded-lg shadow-lg z-50">
-          <p className="text-sm font-semibold mb-2">Debug: OG Image Preview</p>
-          <img src={ogImageUrl} alt="OG Preview" className="max-w-[300px]" />
-          {chartImageUrl && (
-            <div className="mt-2">
-              <p className="text-sm font-semibold mb-2">Chart Image:</p>
-              <img src={chartImageUrl} alt="Chart" className="max-w-[200px]" />
-            </div>
-          )}
-        </div>
-      )}
+        {current.status === 'loading' && (
+          <div className="py-20 text-center" role="status" aria-live="polite">
+            <Loader2 className="mx-auto mb-5 h-8 w-8 animate-spin" aria-hidden="true" />
+            <h1 className="text-2xl font-bold">Loading poll results</h1>
+            <p className="mt-3 text-gray-600">Getting the latest totals for this shared poll.</p>
+          </div>
+        )}
 
-      <main className="min-h-screen bg-gray-50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-            <h1 className="text-2xl font-bold mb-4">{question.text}</h1>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-gray-600">Total Votes: {totalVotes.toLocaleString()}</p>
-              <div className="flex items-center space-x-2">
-                <PieChart className="w-5 h-5 text-blue-600" />
-                <BarChart3 className="w-5 h-5 text-blue-600" />
-              </div>
-            </div>
-
-            {/* Results visualization components will go here */}
-            <div className="grid md:grid-cols-2 gap-8 mt-8">
-              <div className="bg-gray-50 p-4 rounded-lg" ref={chartRef}>
-                <h3 className="text-xl font-semibold mb-4">Overall Results</h3>
-                <PieChartComponent results={results} />
-              </div>
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-xl font-semibold mb-4">Results by State</h3>
-                <USMapComponent
-                  stateResults={data.stateResults}
-                  results={results} // Pass the full results array instead of just IDs
-                />
-              </div>
+        {current.status === 'error' && (
+          <div className="error-state max-w-2xl py-12" role="alert">
+            <p className="eyebrow mb-4">Shared results</p>
+            <h1 className="text-3xl sm:text-4xl font-bold">{current.title}</h1>
+            <p className="mt-4 text-gray-600 leading-relaxed">{current.message}</p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              {current.retryable && (
+                <button type="button" className="primary-button" onClick={() => setAttempt(value => value + 1)}>
+                  <RefreshCw size={16} aria-hidden="true" /> Try again
+                </button>
+              )}
+              {filters.length > 0 && isQuestionId(questionId) && (
+                <Link to={`/shared/${questionId}`} className="secondary-button">View without filters</Link>
+              )}
+              <Link to="/" className="secondary-button">Back to homepage</Link>
             </div>
           </div>
-        </div>
+        )}
+
+        {data && (
+          <>
+            <header className="shared-results-heading max-w-4xl mb-10">
+              <p className="eyebrow mb-4">Shared poll results</p>
+              <h1 className="text-3xl sm:text-5xl font-bold leading-tight">{data.question.text}</h1>
+              <p className="mt-5 text-gray-600">
+                <strong className="text-gray-900">{data.totalVotes.toLocaleString()}</strong>{' '}
+                {data.totalVotes === 1 ? 'vote' : 'votes'}{filters.length > 0 ? ' with these filters' : ' in this poll'}
+              </p>
+              {filters.length > 0 && (
+                <div className="mt-5 flex flex-wrap items-center gap-2" aria-label="Selected filters">
+                  {filters.map(([key, value], index) => (
+                    <span key={`${key}-${index}`} className="rounded-full border border-gray-300 px-3 py-1 text-xs">
+                      {filterLabels[key] ?? key.replace(/_/g, ' ')}: {value}
+                    </span>
+                  ))}
+                  <Link to={`/shared/${data.question.id}`} className="text-sm font-semibold underline underline-offset-4 ml-2">Clear filters</Link>
+                </div>
+              )}
+            </header>
+
+            {data.totalVotes === 0 ? (
+              <section className="results-panel rounded-2xl border border-gray-200 bg-white p-8 sm:p-12">
+                <h2 className="text-2xl font-bold">{filters.length ? 'No votes match these filters' : 'No votes yet'}</h2>
+                <p className="mt-3 text-gray-600">{filters.length
+                  ? 'Remove the filters to see all available responses for this poll.'
+                  : 'Results will appear here when responses are recorded.'}</p>
+                {filters.length > 0 && <Link to={`/shared/${data.question.id}`} className="secondary-button mt-6">View all responses</Link>}
+              </section>
+            ) : (
+              <div className="grid gap-6 lg:grid-cols-2">
+                <section className="results-panel min-w-0 rounded-2xl border border-gray-200 bg-white p-5 sm:p-8">
+                  <h2 className="text-xl font-bold">{filters.length ? 'Filtered results' : 'Overall results'}</h2>
+                  <PieChartComponent results={data.results} />
+                  <table className="w-full text-sm">
+                    <caption className="sr-only">Exact response counts and percentages</caption>
+                    <thead><tr className="border-b border-gray-200 text-left"><th scope="col" className="py-3 font-medium">Answer</th><th scope="col" className="py-3 text-right font-medium">Votes</th><th scope="col" className="py-3 text-right font-medium">Share</th></tr></thead>
+                    <tbody>{data.results.map(option => (
+                      <tr key={option.optionId} className="border-b border-gray-100">
+                        <th scope="row" className="py-3 pr-3 text-left font-medium">{option.optionText}</th>
+                        <td className="py-3 text-right tabular-nums">{option.votes.toLocaleString()}</td>
+                        <td className="py-3 pl-3 text-right tabular-nums">{option.percentage.toFixed(1)}%</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </section>
+                <section className="results-panel min-w-0 rounded-2xl border border-gray-200 bg-white p-5 sm:p-8">
+                  <h2 className="text-xl font-bold">Results by state</h2>
+                  <p className="mt-2 text-sm text-gray-600">Responses with a recorded state. Select a state to see its counts.</p>
+                  {data.stateResults.length > 0 ? (
+                    <USMapComponent stateResults={data.stateResults} results={data.results} />
+                  ) : <p className="py-16 text-center text-gray-600">No state data is available for these responses.</p>}
+                </section>
+              </div>
+            )}
+
+            <p className="mt-10 text-sm text-gray-600">These totals reflect responses to this poll{filters.length ? ' with the selected filters' : ''}.</p>
+            <Link to="/" className="secondary-button mt-6">Explore Everybody Polls <ArrowUpRight size={16} aria-hidden="true" /></Link>
+          </>
+        )}
       </main>
     </>
   );

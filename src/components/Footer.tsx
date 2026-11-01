@@ -1,24 +1,6 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
+import { Brand } from './Navbar';
 
 export default function Footer() {
-  return (
-    <footer className="bg-gray-800 text-white mt-auto">
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row justify-between items-center">
-          <div className="mb-4 md:mb-0">
-            <p className="text-sm">© 2024 Everybody Polls. All rights reserved.</p>
-          </div>
-          <div className="flex space-x-6">
-            <Link to="/privacy" className="text-sm hover:text-blue-400 transition-colors">
-              Privacy Policy
-            </Link>
-            <Link to="/delete" className="text-sm hover:text-red-400 transition-colors">
-              Delete Account
-            </Link>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
+  return <footer className="site-footer"><div className="section-shell"><div className="footer-main"><Link to="/" aria-label="Everybody Polls home"><Brand light /></Link><p>A little question.<br />A little closer together.</p><div className="footer-links"><Link to="/privacy">Privacy policy</Link><Link to="/delete">Account deletion</Link><a href="/#sample-poll">Explore a sample ↗</a></div></div><div className="footer-bottom"><span>© {new Date().getFullYear()} Everybody Polls</span><span>For curious people, everywhere.</span></div></div></footer>;
 }
