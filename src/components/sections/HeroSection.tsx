@@ -66,7 +66,7 @@ export function HeroSection({ poll }: { poll: SamplePoll }) {
         <h1>Two choices.<br />A whole lot<br />{' '}of <span className="us-word">us.<svg viewBox="0 0 140 20" aria-hidden="true"><path d="M4 12Q63 1 133 10" /></svg></span></h1>
         <p className="hero-description">Pick your side. Predict the crowd.<br className="desktop-break" /> Discover what we have in common.</p>
         <div className="hero-actions"><a className="primary-button" href="#sample-poll">Explore a sample <ArrowUpRight size={19} /></a><a className="text-button" href="#how-it-works">How it works <ChevronDown size={17} /></a></div>
-        <p className="ios-note"><Smartphone size={17} /> Made for iOS. A fresh build is in progress.</p>
+        <p className="ios-note"><Smartphone size={17} /> Made for iOS.</p>
       </div>
       <div className="hero-demo"><div className="floating-note"><span aria-hidden="true">↙</span> Go on, pick a side.</div><SampleBallot key={poll.id} poll={poll} /><div className="hero-demo-footnote"><span className="mini-bubbles" aria-hidden="true"><i /><i /><i /></span> Your opinion is only half the fun.</div></div>
     </div>
