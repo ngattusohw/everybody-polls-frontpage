@@ -2045,3 +2045,221 @@ h1,h2,h3,p {
     transition: none!important
   }
 }
+.account-page {
+  background: #f6fafc;
+  padding: 60px 24px 72px;
+  min-height: 65vh
+}
+.account-shell {
+  width: min(100%,590px);
+  margin-inline: auto
+}
+.account-shell>h1 {
+  font-size: clamp(29px,5vw,38px);
+  line-height: 1.2;
+  letter-spacing: -1.1px;
+  margin: 11px 0 26px
+}
+.account-card {
+  border: 1px solid #dce9ef;
+  border-radius: 22px;
+  padding: 32px;
+  background: #fff;
+  box-shadow: 0 10px 35px #264d6110
+}
+.account-card p {
+  font-size: 14px;
+  line-height: 1.7
+}
+.account-card h2 {
+  font-size: 20px;
+  line-height: 1.35;
+  margin-bottom: 10px
+}
+.account-intro>svg {
+  color: #167da6;
+  margin-bottom: 18px
+}
+.account-intro p,.account-helper,.account-support {
+  color: #526f7c
+}
+.account-form {
+  display: grid;
+  gap: 20px;
+  margin-top: 26px
+}
+.account-form label {
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 700;
+  margin-bottom: 8px
+}
+.account-form input:not([type=checkbox]) {
+  width: 100%;
+  min-height: 48px;
+  padding: 11px 13px;
+  border: 1px solid #bcd1db;
+  border-radius: 10px;
+  color: #203f4d;
+  background: #fff;
+  font: inherit;
+  font-size: 16px
+}
+.account-form .primary-button,.account-delete-button {
+  width: 100%;
+  min-height: 49px
+}
+.account-card button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  transform: none
+}
+.account-form .account-helper {
+  font-size: 12px;
+  margin-top: 7px
+}
+.account-form>.account-helper {
+  text-align: center;
+  margin-top: -9px
+}
+.account-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0
+}
+.account-identity>svg {
+  flex-shrink: 0;
+  color: #167da6
+}
+.account-identity span,.account-identity strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere
+}
+.account-identity span {
+  font-size: 12px;
+  color: #526f7c
+}
+.account-switch {
+  font-size: 12px;
+  margin: 8px 0 24px 31px
+}
+.account-warning {
+  display: flex;
+  gap: 12px;
+  padding: 18px;
+  color: #84353a;
+  background: #fff5f4;
+  border: 1px solid #f1d4d1;
+  border-radius: 13px
+}
+.account-warning>svg {
+  flex-shrink: 0;
+  margin-top: 2px
+}
+.account-warning h2 {
+  font-size: 16px;
+  margin-bottom: 7px
+}
+.account-warning p {
+  font-size: 13px
+}
+.account-form .account-checkbox {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-weight: 500;
+  margin-bottom: 0
+}
+.account-checkbox input {
+  accent-color: #a93d46;
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+  margin-top: 1px
+}
+.account-delete-button {
+  padding: 14px 18px;
+  border: 1px solid #a53843;
+  border-radius: 12px;
+  background: #a53843;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px
+}
+.account-delete-button:not(:disabled):hover {
+  background: #872c35
+}
+.account-cancel,.account-privacy {
+  display: block;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.6;
+  text-decoration: underline;
+  text-underline-offset: 4px
+}
+.account-privacy {
+  margin-top: 26px;
+  color: #526f7c
+}
+.account-error {
+  padding: 15px;
+  background: #fff2f0;
+  border: 1px solid #efceca;
+  border-radius: 10px;
+  color: #84353a;
+  margin-bottom: 23px
+}
+.account-loading,.account-settings-error,.account-provider {
+  margin-top: 25px
+}
+.account-provider {
+  width: 100%
+}
+.account-settings-error .secondary-button {
+  margin-top: 16px
+}
+.account-apple {
+  margin-top: 27px;
+  background: #f1f8fb;
+  border: 1px solid #dce9ef;
+  padding: 18px;
+  border-radius: 12px
+}
+.account-apple h3 {
+  font-size: 14px;
+  margin-bottom: 7px
+}
+.account-apple p,.account-support {
+  font-size: 12px
+}
+.account-support {
+  margin-top: 24px
+}
+.account-support a {
+  text-decoration: underline;
+  text-underline-offset: 3px
+}
+.account-success>svg {
+  color: #267763;
+  margin-bottom: 18px
+}
+.account-success .primary-button {
+  margin-top: 25px
+}
+@media(max-width:600px) {
+  .account-page {
+    padding: 40px 16px 50px
+  }
+  .account-card {
+    padding: 24px 20px;
+    border-radius: 17px
+  }
+  .account-warning {
+    padding: 15px 12px;
+    gap: 10px
+  }
+}
